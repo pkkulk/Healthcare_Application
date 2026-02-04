@@ -5,7 +5,7 @@ export default function RoleSelection({ onSelectRole }) {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
             <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-slate-900 mb-4">Healthcare Translator</h1>
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Healthcare Translator</h1>
                 <p className="text-slate-600 max-w-md mx-auto">
                     Real-time translation bridge for better doctor-patient communication.
                 </p>

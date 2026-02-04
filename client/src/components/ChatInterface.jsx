@@ -154,41 +154,55 @@ export default function ChatInterface({ role, setRole }) {
     );
 
     return (
-        <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white shadow-xl">
+        <div className="flex flex-col h-screen w-full bg-white">
             {/* Header */}
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white z-10">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-800">Consultation Room</h1>
-                    <p className="text-sm text-slate-500">
-                        You are speaking as: <span className={`font-semibold ${role === 'doctor' ? 'text-blue-600' : 'text-emerald-600'}`}>{role.toUpperCase()}</span>
-                    </p>
+            <div className="p-3 md:p-4 border-b border-gray-200 flex flex-col md:flex-row items-center justify-between bg-white z-10 gap-3 md:gap-0">
+                <div className="w-full md:w-auto flex justify-between items-center">
+                    <div>
+                        <h1 className="text-lg md:text-xl font-bold text-slate-800">Consultation Room</h1>
+                        <p className="text-xs md:text-sm text-slate-500">
+                            Speaking as: <span className={`font-semibold ${role === 'doctor' ? 'text-blue-600' : 'text-emerald-600'}`}>{role.toUpperCase()}</span>
+                        </p>
+                    </div>
+                    {/* Mobile: Role Switcher could be visible here or keep it in the controls group */}
                 </div>
-                <div className="flex items-center gap-4">
+
+                <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
                     {/* Search Input */}
                     <input
                         type="text"
                         placeholder="Search..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="text-sm border-gray-300 rounded-md px-2 py-1"
+                        className="flex-1 md:flex-none text-sm border border-gray-300 rounded-md px-2 py-1.5 w-full md:w-48"
                     />
-                    <button
-                        onClick={handleSummarize}
-                        className="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-md text-slate-700 font-medium"
-                    >
-                        Generate Summary
-                    </button>
 
                     <select
                         value={targetLanguage}
                         onChange={(e) => setTargetLanguage(e.target.value)}
-                        className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-1.5"
                     >
                         <option value="en">English</option>
                         <option value="es">Spanish</option>
                         <option value="fr">French</option>
                         <option value="hi">Hindi</option>
                     </select>
+
+                    <button
+                        onClick={handleSummarize}
+                        className="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md text-slate-700 font-medium whitespace-nowrap"
+                    >
+                        Summary
+                    </button>
+
+                    <div className="hidden md:block">
+                        <RoleSwitcher currentRole={role} onSwitch={setRole} />
+                    </div>
+                </div>
+                {/* Mobile only Role Switcher if needed, but the desktop one in the flex group might be enough if it fits. 
+                    Actually, let's keep RoleSwitcher in the main group but make sure it fits. 
+                */}
+                <div className="md:hidden w-full flex justify-end mt-2">
                     <RoleSwitcher currentRole={role} onSwitch={setRole} />
                 </div>
             </div>
