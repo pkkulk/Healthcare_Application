@@ -2,7 +2,7 @@
 
 A real-time translation bridge ensuring seamless and accurate communication between doctors and patients who speak different languages. This application features role-based chat, real-time AI translation (powered by Google Gemini), audio recording, and conversation summarization.
 
-## 🚀 Features
+##  Features
 
 - **Role Selection**: Distinct interfaces for **Doctors** and **Patients**.
 - **Real-Time Text Translation**: Messages are translated instantly into the recipient's preferred language (`English`, `Spanish`, `French`, `Hindi`).
