@@ -12,7 +12,6 @@ export default function RoleSelection({ onSelectRole }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full">
-                {/* Doctor Card */}
                 <button
                     onClick={() => onSelectRole('doctor')}
                     className="group relative bg-white p-8 rounded-2xl shadow-sm border-2 border-transparent hover:border-blue-500 hover:shadow-md transition-all text-left"
@@ -26,7 +25,6 @@ export default function RoleSelection({ onSelectRole }) {
                     </p>
                 </button>
 
-                {/* Patient Card */}
                 <button
                     onClick={() => onSelectRole('patient')}
                     className="group relative bg-white p-8 rounded-2xl shadow-sm border-2 border-transparent hover:border-emerald-500 hover:shadow-md transition-all text-left"

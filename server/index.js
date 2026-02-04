@@ -6,20 +6,16 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Initialize Gemini
-// Ensure GEMINI_API_KEY is allowed in your .env file
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
 app.use(cors());
 app.use(express.json());
 
-// Basic Health Check
 app.get('/', (req, res) => {
     res.send('Healthcare Translation API (Gemini Powered) is running');
 });
 
-// AI Translation Endpoint
 app.post('/api/translate', async (req, res) => {
     try {
         const { text, targetLanguage, role } = req.body;
@@ -42,7 +38,6 @@ app.post('/api/translate', async (req, res) => {
         });
     } catch (error) {
         console.error("Translation Error:", error);
-        // Fallback to Mock Translation if API fails (e.g. Rate Limit 429 or Overloaded 503)
         res.json({
             original: req.body.text,
             translated: `[Fallback]: ${req.body.text}`,
@@ -52,7 +47,6 @@ app.post('/api/translate', async (req, res) => {
     }
 });
 
-// AI Summary Endpoint
 app.post('/api/summarize', async (req, res) => {
     try {
         const { conversation } = req.body;

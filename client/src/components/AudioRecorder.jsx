@@ -22,7 +22,6 @@ export default function AudioRecorder({ onRecordingComplete }) {
                 const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
                 onRecordingComplete(audioBlob);
 
-                // Stop all tracks to release microphone
                 stream.getTracks().forEach(track => track.stop());
             };
 
@@ -45,8 +44,8 @@ export default function AudioRecorder({ onRecordingComplete }) {
         <button
             onClick={isRecording ? stopRecording : startRecording}
             className={`p-3 rounded-full transition-all shadow-md flex items-center justify-center ${isRecording
-                    ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800'
+                ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800'
                 }`}
             title={isRecording ? "Stop Recording" : "Start Recording"}
         >

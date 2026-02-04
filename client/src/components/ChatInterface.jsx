@@ -16,14 +16,12 @@ export default function ChatInterface({ role, setRole }) {
     const [summaryText, setSummaryText] = useState('');
     const messagesEndRef = useRef(null);
 
-    // Auto-scroll to bottom
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
     useEffect(scrollToBottom, [messages]);
 
-    // Load initial messages and subscribe to realtime
     useEffect(() => {
         const fetchMessages = async () => {
             const { data } = await supabase
@@ -36,7 +34,6 @@ export default function ChatInterface({ role, setRole }) {
 
         fetchMessages();
 
-        // Subscribe
         const channel = supabase
             .channel('public:conversations')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, (payload) => {
@@ -54,31 +51,24 @@ export default function ChatInterface({ role, setRole }) {
         return saved ? JSON.parse(saved) : {};
     });
 
-    // Persist cache updates
     useEffect(() => {
         localStorage.setItem('translationsCache', JSON.stringify(translationsCache));
     }, [translationsCache]);
 
-    // Fetch missing translations
     useEffect(() => {
         const fetchMissingTranslations = async () => {
             const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-            // 1. Identify what needs translation
             const neededTranslations = messages.filter(msg => {
-                // If it's already in the target language, skip
                 if (msg.target_language === targetLanguage) return false;
 
-                // Check cache
                 const cacheKey = `${msg.id}_${targetLanguage}`;
                 if (translationsCache[cacheKey]) return false;
 
                 return true;
             });
 
-            // 2. Process sequentially with delay to avoid 429 Rate Limit
             for (const msg of neededTranslations) {
-                // Check cache again in case another effect run caught it
                 const cacheKey = `${msg.id}_${targetLanguage}`;
                 if (translationsCache[cacheKey]) continue;
 
@@ -101,18 +91,15 @@ export default function ChatInterface({ role, setRole }) {
                         }));
                     }
 
-                    // Add a delay between requests (Increased to 4s for safety)
                     await new Promise(resolve => setTimeout(resolve, 4000));
 
                 } catch (err) {
                     console.error("Dynamic interaction translation failed", err);
-                    // On complete network fail, wait longer
                     await new Promise(resolve => setTimeout(resolve, 10000));
                 }
             }
         };
 
-        // Debounce to prevent rapid firing while typing/loading
         const timeoutId = setTimeout(fetchMissingTranslations, 2000);
         return () => clearTimeout(timeoutId);
     }, [messages, targetLanguage, translationsCache]);
@@ -122,8 +109,6 @@ export default function ChatInterface({ role, setRole }) {
         setIsSending(true);
 
         try {
-            // 1. Send to Backend for Translation
-            // Note: Uses VITE_API_URL or defaults to localhost
             const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
             let translatedText = "";
             try {
@@ -143,7 +128,6 @@ export default function ChatInterface({ role, setRole }) {
                 translatedText = `[Mock Translate]: ${inputText}`;
             }
 
-            // 2. Insert into Supabase
             const { error } = await supabase.from('conversations').insert({
                 role,
                 text_original: inputText,
@@ -164,7 +148,6 @@ export default function ChatInterface({ role, setRole }) {
     const handleAudioRecord = async (audioBlob) => {
         setIsSending(true);
         try {
-            // 1. Upload to Supabase Storage
             const fileName = `${Date.now()}_${role}.webm`;
             const { error: uploadError } = await supabase.storage
                 .from('audio')
@@ -172,17 +155,12 @@ export default function ChatInterface({ role, setRole }) {
 
             if (uploadError) throw uploadError;
 
-            // 2. Get Public URL
             const { data: { publicUrl } } = supabase.storage
                 .from('audio')
                 .getPublicUrl(fileName);
 
-            // 3. Send to Backend for Translation (Transcription first normally, but we'll mock)
-            // Ideally: Whisper API -> Text -> Translation
-            // For now: We will just store the audio and a placeholder text
             const transcript = "[Audio Message]";
 
-            // 4. Insert into Supabase
             await supabase.from('conversations').insert({
                 role,
                 text_original: transcript,
@@ -200,7 +178,7 @@ export default function ChatInterface({ role, setRole }) {
     };
 
     const handleSummarize = async () => {
-        setShowSummary(false); // Hide previous summary
+        setShowSummary(false);
         setSummaryText('Generating summary...');
         try {
             const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -227,7 +205,6 @@ export default function ChatInterface({ role, setRole }) {
 
     return (
         <div className="flex flex-col h-screen w-full bg-white">
-            {/* Header */}
             <div className="p-3 md:p-4 border-b border-gray-200 flex flex-col md:flex-row items-center justify-between bg-white z-10 gap-3 md:gap-0">
                 <div className="w-full md:w-auto flex justify-between items-center">
                     <div>
@@ -236,11 +213,9 @@ export default function ChatInterface({ role, setRole }) {
                             Speaking as: <span className={`font-semibold ${role === 'doctor' ? 'text-blue-600' : 'text-emerald-600'}`}>{role.toUpperCase()}</span>
                         </p>
                     </div>
-                    {/* Mobile: Role Switcher could be visible here or keep it in the controls group */}
                 </div>
 
                 <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
-                    {/* Search Input */}
                     <input
                         type="text"
                         placeholder="Search..."
@@ -271,15 +246,12 @@ export default function ChatInterface({ role, setRole }) {
                         <RoleSwitcher currentRole={role} onSwitch={setRole} />
                     </div>
                 </div>
-                {/* Mobile only Role Switcher if needed, but the desktop one in the flex group might be enough if it fits. 
-                    Actually, let's keep RoleSwitcher in the main group but make sure it fits. 
-                */}
+
                 <div className="md:hidden w-full flex justify-end mt-2">
                     <RoleSwitcher currentRole={role} onSwitch={setRole} />
                 </div>
             </div>
 
-            {/* Summary Modal area */}
             {showSummary && (
                 <div className="bg-yellow-50 p-4 border-b border-yellow-200 relative max-h-[40vh] overflow-y-auto">
                     <button onClick={() => setShowSummary(false)} className="absolute top-2 right-2 text-yellow-700 font-bold hover:text-yellow-900">&times;</button>
@@ -292,15 +264,9 @@ export default function ChatInterface({ role, setRole }) {
                 </div>
             )}
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
                 {filteredMessages.map((msg) => {
                     const isMe = msg.role === role;
-
-                    // Display Logic:
-                    // 1. If msg.target_language matches my current targetLanguage, show database translation
-                    // 2. Else, check translationsCache
-                    // 3. Fallback to "Translating..." or original if failing
 
                     let displayTranslation = msg.text_translated;
                     if (msg.target_language !== targetLanguage) {
@@ -319,15 +285,12 @@ export default function ChatInterface({ role, setRole }) {
                                     <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
 
-                                {/* Original Text */}
                                 <p className="text-lg leading-snug">{msg.text_original}</p>
 
-                                {/* Audio Player */}
                                 {msg.audio_url && (
                                     <audio controls src={msg.audio_url} className="mt-2 w-full max-w-[200px]" />
                                 )}
 
-                                {/* Translated Text (Divider) */}
                                 {displayTranslation && (
                                     <div className={`mt-2 pt-2 border-t ${isMe ? 'border-blue-500/50' : 'border-gray-100'}`}>
                                         <p className={`text-sm ${isMe ? 'text-blue-100' : 'text-slate-500'} italic`}>
@@ -342,7 +305,6 @@ export default function ChatInterface({ role, setRole }) {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
             <div className="p-4 bg-white border-t border-gray-200">
                 <div className="flex items-end gap-2">
                     <AudioRecorder onRecordingComplete={handleAudioRecord} />
