@@ -59,48 +59,50 @@ export default function ChatInterface({ role, setRole }) {
         const fetchMissingTranslations = async () => {
             const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+            // 1. Identify what needs translation
             const neededTranslations = messages.filter(msg => {
                 if (msg.target_language === targetLanguage) return false;
-
                 const cacheKey = `${msg.id}_${targetLanguage}`;
                 if (translationsCache[cacheKey]) return false;
-
                 return true;
             });
 
-            for (const msg of neededTranslations) {
-                const cacheKey = `${msg.id}_${targetLanguage}`;
-                if (translationsCache[cacheKey]) continue;
+            if (neededTranslations.length === 0) return;
 
-                try {
-                    const response = await fetch(`${API_BASE}/api/translate`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            text: msg.text_original,
-                            targetLanguage,
-                            role: msg.role
-                        })
+            // 2. Batch Request
+            try {
+                console.log(`Batch translating ${neededTranslations.length} messages...`);
+
+                const response = await fetch(`${API_BASE}/api/translate-batch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        inputs: neededTranslations.map(m => ({ id: m.id, text: m.text_original, role: m.role })),
+                        targetLanguage
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.translations) {
+                    const newCache = {};
+                    data.translations.forEach(t => {
+                        const cacheKey = `${t.id}_${targetLanguage}`;
+                        newCache[cacheKey] = t.translated;
                     });
-                    const data = await response.json();
 
-                    if (data.translated) {
-                        setTranslationsCache(prev => ({
-                            ...prev,
-                            [cacheKey]: data.translated
-                        }));
-                    }
-
-                    await new Promise(resolve => setTimeout(resolve, 4000));
-
-                } catch (err) {
-                    console.error("Dynamic interaction translation failed", err);
-                    await new Promise(resolve => setTimeout(resolve, 10000));
+                    setTranslationsCache(prev => ({
+                        ...prev,
+                        ...newCache
+                    }));
                 }
+
+            } catch (err) {
+                console.error("Batch translation failed", err);
             }
         };
 
-        const timeoutId = setTimeout(fetchMissingTranslations, 2000);
+        const timeoutId = setTimeout(fetchMissingTranslations, 1000); // Debounce 1s
         return () => clearTimeout(timeoutId);
     }, [messages, targetLanguage, translationsCache]);
 

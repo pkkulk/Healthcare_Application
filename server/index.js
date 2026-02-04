@@ -47,6 +47,52 @@ app.post('/api/translate', async (req, res) => {
     }
 });
 
+// Batch Translation Endpoint
+app.post('/api/translate-batch', async (req, res) => {
+    try {
+        const { inputs, targetLanguage } = req.body; // inputs = [{ id, text, role }, ...]
+
+        if (!inputs || !Array.isArray(inputs) || inputs.length === 0) {
+            return res.status(400).json({ error: 'Valid inputs array is required' });
+        }
+
+        const targetLangName = targetLanguage === 'es' ? 'Spanish' : targetLanguage === 'fr' ? 'French' : targetLanguage === 'hi' ? 'Hindi' : 'English';
+
+        // efficient single prompt construction
+        const prompt = `Translate the following valid JSON array of texts to ${targetLangName}. 
+        Return ONLY a JSON array where each object has "id" and "translated" text. 
+        Do not translate the "id".
+        Do not add Markdown formatting (like \`\`\`json). Just raw JSON.
+        
+        Input JSON:
+        ${JSON.stringify(inputs.map(i => ({ id: i.id, text: i.text })))}`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        let rawText = response.text().trim();
+
+        // Clean potential markdown code blocks if the model adds them
+        if (rawText.startsWith('```json')) {
+            rawText = rawText.replace(/^```json/, '').replace(/```$/, '').trim();
+        } else if (rawText.startsWith('```')) {
+            rawText = rawText.replace(/^```/, '').replace(/```$/, '').trim();
+        }
+
+        const translations = JSON.parse(rawText);
+
+        res.json({ translations });
+    } catch (error) {
+        console.error("Batch Translation Error:", error);
+        // Fallback: Return original text as translated
+        res.json({
+            translations: req.body.inputs.map(i => ({ id: i.id, translated: `[Fallback]: ${i.text}` })),
+            error: "AI_UNAVAILABLE"
+        });
+    }
+});
+
+// AI Summary Endpoint
+// AI Summary Endpoint
 app.post('/api/summarize', async (req, res) => {
     try {
         const { conversation } = req.body;

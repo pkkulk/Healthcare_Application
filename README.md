@@ -10,6 +10,8 @@ A real-time translation bridge ensuring seamless and accurate communication betw
 - **AI Integration**:
   - **Translation**: Powered by Google Gemini (`gemini-2.5-flash-lite`) for optimized speed and quota management.
   - **Summarization**: Generates professional clinical visit summaries highlighting symptoms, diagnoses, and next steps.
+- **Optimized Performance**:
+  - **Batch Translation**: Implements an intelligent batching system (`/api/translate-batch`) to translate multiple messages in a single API call, reducing latency and avoiding rate limits.
 - **Conversation History**: All chats are persisted in a database for future reference.
 - **Search**: Filter conversation history by keywords.
 
