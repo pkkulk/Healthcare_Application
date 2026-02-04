@@ -52,11 +52,12 @@ export default function ChatInterface({ role, setRole }) {
         setIsSending(true);
 
         try {
-            // 1. Send to Backend for Translation (using fetch to our Express server)
-            // Note: Assuming Port 3000 for server
+            // 1. Send to Backend for Translation
+            // Note: Uses VITE_API_URL or defaults to localhost
+            const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
             let translatedText = "";
             try {
-                const response = await fetch('http://localhost:3000/api/translate', {
+                const response = await fetch(`${API_BASE}/api/translate`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -132,8 +133,9 @@ export default function ChatInterface({ role, setRole }) {
         setShowSummary(false); // Hide previous summary
         setSummaryText('Generating summary...');
         try {
+            const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
             const conversationText = messages.map(msg => `${msg.role}: ${msg.text_original}`).join('\n');
-            const response = await fetch('http://localhost:3000/api/summarize', {
+            const response = await fetch(`${API_BASE}/api/summarize`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ conversation: conversationText })
