@@ -8,7 +8,7 @@ A real-time translation bridge ensuring seamless and accurate communication betw
 - **Real-Time Text Translation**: Messages are translated instantly into the recipient's preferred language (`English`, `Spanish`, `French`, `Hindi`).
 - **Audio Messaging**: Record audio directly in the chat; clips are stored securely and playable by both parties.
 - **AI Integration**:
-  - **Translation**: Powered by Google Gemini (`gemini-2.5-flash-lite`) for optimized speed and quota management.
+  - **Translation**: Powered by Google Gemini (`gemini-3-flash-preview`) for optimized speed and quota management.
   - **Summarization**: Generates professional clinical visit summaries highlighting symptoms, diagnoses, and next steps.
 - **Optimized Performance**:
   - **Batch Translation**: Implements an intelligent batching system (`/api/translate-batch`) to translate multiple messages in a single API call, reducing latency and avoiding rate limits.
