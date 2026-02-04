@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, RefreshCw } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { supabase } from '../supabaseClient';
 import RoleSwitcher from './RoleSwitcher';
 import AudioRecorder from './AudioRecorder';
@@ -24,7 +26,7 @@ export default function ChatInterface({ role, setRole }) {
     // Load initial messages and subscribe to realtime
     useEffect(() => {
         const fetchMessages = async () => {
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('conversations')
                 .select('*')
                 .order('created_at', { ascending: true });
@@ -46,6 +48,74 @@ export default function ChatInterface({ role, setRole }) {
             supabase.removeChannel(channel);
         };
     }, []);
+
+    const [translationsCache, setTranslationsCache] = useState(() => {
+        const saved = localStorage.getItem('translationsCache');
+        return saved ? JSON.parse(saved) : {};
+    });
+
+    // Persist cache updates
+    useEffect(() => {
+        localStorage.setItem('translationsCache', JSON.stringify(translationsCache));
+    }, [translationsCache]);
+
+    // Fetch missing translations
+    useEffect(() => {
+        const fetchMissingTranslations = async () => {
+            const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+            // 1. Identify what needs translation
+            const neededTranslations = messages.filter(msg => {
+                // If it's already in the target language, skip
+                if (msg.target_language === targetLanguage) return false;
+
+                // Check cache
+                const cacheKey = `${msg.id}_${targetLanguage}`;
+                if (translationsCache[cacheKey]) return false;
+
+                return true;
+            });
+
+            // 2. Process sequentially with delay to avoid 429 Rate Limit
+            for (const msg of neededTranslations) {
+                // Check cache again in case another effect run caught it
+                const cacheKey = `${msg.id}_${targetLanguage}`;
+                if (translationsCache[cacheKey]) continue;
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/translate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: msg.text_original,
+                            targetLanguage,
+                            role: msg.role
+                        })
+                    });
+                    const data = await response.json();
+
+                    if (data.translated) {
+                        setTranslationsCache(prev => ({
+                            ...prev,
+                            [cacheKey]: data.translated
+                        }));
+                    }
+
+                    // Add a delay between requests (Increased to 4s for safety)
+                    await new Promise(resolve => setTimeout(resolve, 4000));
+
+                } catch (err) {
+                    console.error("Dynamic interaction translation failed", err);
+                    // On complete network fail, wait longer
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+                }
+            }
+        };
+
+        // Debounce to prevent rapid firing while typing/loading
+        const timeoutId = setTimeout(fetchMissingTranslations, 2000);
+        return () => clearTimeout(timeoutId);
+    }, [messages, targetLanguage, translationsCache]);
 
     const handleSend = async () => {
         if (!inputText.trim()) return;
@@ -96,7 +166,7 @@ export default function ChatInterface({ role, setRole }) {
         try {
             // 1. Upload to Supabase Storage
             const fileName = `${Date.now()}_${role}.webm`;
-            const { data: uploadData, error: uploadError } = await supabase.storage
+            const { error: uploadError } = await supabase.storage
                 .from('audio')
                 .upload(fileName, audioBlob);
 
@@ -152,7 +222,7 @@ export default function ChatInterface({ role, setRole }) {
 
     const filteredMessages = messages.filter(msg =>
         msg.text_original.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        msg.text_translated.toLowerCase().includes(searchTerm.toLowerCase())
+        (msg.text_translated && msg.text_translated.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (
@@ -209,12 +279,16 @@ export default function ChatInterface({ role, setRole }) {
                 </div>
             </div>
 
-            {/* Summary Modal area (simple inline for now) */}
+            {/* Summary Modal area */}
             {showSummary && (
-                <div className="bg-yellow-50 p-4 border-b border-yellow-200 relative">
-                    <button onClick={() => setShowSummary(false)} className="absolute top-2 right-2 text-yellow-700 font-bold">&times;</button>
-                    <h3 className="font-bold text-yellow-800 mb-1">Conversation Summary</h3>
-                    <p className="text-sm text-yellow-800 whitespace-pre-wrap">{summaryText}</p>
+                <div className="bg-yellow-50 p-4 border-b border-yellow-200 relative max-h-[40vh] overflow-y-auto">
+                    <button onClick={() => setShowSummary(false)} className="absolute top-2 right-2 text-yellow-700 font-bold hover:text-yellow-900">&times;</button>
+                    <h3 className="font-bold text-yellow-800 mb-2 sticky top-0 bg-yellow-50 pb-1">Conversation Summary</h3>
+                    <div className="prose prose-sm prose-yellow max-w-none text-slate-800">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {summaryText}
+                        </ReactMarkdown>
+                    </div>
                 </div>
             )}
 
@@ -222,6 +296,18 @@ export default function ChatInterface({ role, setRole }) {
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
                 {filteredMessages.map((msg) => {
                     const isMe = msg.role === role;
+
+                    // Display Logic:
+                    // 1. If msg.target_language matches my current targetLanguage, show database translation
+                    // 2. Else, check translationsCache
+                    // 3. Fallback to "Translating..." or original if failing
+
+                    let displayTranslation = msg.text_translated;
+                    if (msg.target_language !== targetLanguage) {
+                        const cacheKey = `${msg.id}_${targetLanguage}`;
+                        displayTranslation = translationsCache[cacheKey] || "...";
+                    }
+
                     return (
                         <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[80%] rounded-2xl p-4 ${isMe
@@ -242,10 +328,10 @@ export default function ChatInterface({ role, setRole }) {
                                 )}
 
                                 {/* Translated Text (Divider) */}
-                                {msg.text_translated && (
+                                {displayTranslation && (
                                     <div className={`mt-2 pt-2 border-t ${isMe ? 'border-blue-500/50' : 'border-gray-100'}`}>
                                         <p className={`text-sm ${isMe ? 'text-blue-100' : 'text-slate-500'} italic`}>
-                                            {msg.text_translated}
+                                            {displayTranslation}
                                         </p>
                                     </div>
                                 )}
