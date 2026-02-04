@@ -8,7 +8,7 @@ A real-time translation bridge ensuring seamless and accurate communication betw
 - **Real-Time Text Translation**: Messages are translated instantly into the recipient's preferred language (`English`, `Spanish`, `French`, `Hindi`).
 - **Audio Messaging**: Record audio directly in the chat; clips are stored securely and playable by both parties.
 - **AI Integration**:
-  - **Translation**: Powered by Google Gemini (Flash models) for speed and accuracy.
+  - **Translation**: Powered by Google Gemini (`gemini-2.5-flash-lite`) for optimized speed and quota management.
   - **Summarization**: Generates professional clinical visit summaries highlighting symptoms, diagnoses, and next steps.
 - **Conversation History**: All chats are persisted in a database for future reference.
 - **Search**: Filter conversation history by keywords.
@@ -102,6 +102,18 @@ npm run dev
 └── README.md               # Project Documentation
 ```
 
+
+## ⚠️ Known Limitations & Trade-offs
+
+1.  **Audio Translation Handling**:
+    *   Currently, audio files are uploaded to Supabase Storage and a link is shared.
+    *   **Limitation**: Real-time *speech-to-text* (transcription) is mocked or minimal in this version due to API complexity limits. The system acts as a pipeline ready for a Whisper API integration.
+2.  **Authentication**:
+    *   The app uses a simple Role Switcher for demonstration purposes. In a production environment, this would be replaced with strict Supabase Auth (Email/Password) to secure Patient vs. Doctor access.
+3.  **model Availability**:
+    *   We explicitly use `gemini-2.5-flash-lite` to ensure high availability and stay within free tier quotas, as standard Pro models may hit rate limits faster.
+
 ## 🔒 Security Note
 - `.env` files are git-ignored to protect your API keys.
 - Ensure your Supabase Row Level Security (RLS) policies are configured correctly for production use.
+
